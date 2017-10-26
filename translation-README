@@ -1,0 +1,67 @@
+A toolkit for text translation using Google Translation API or Microsoft Translation API
+
+1. Purpose of this toolkit:
+This java toolkit allows users to translate text collections from a source language to a target language by using the available Google translation java API or Microsoft bing translation java API. Currently google translation API supports 63 languages and Bing Translation API supports 36 languages. 
+
+2. Toolkit function description:
+The toolkit supports two different manners of translation. For each translation call, you can send either a text string, or a string array for translation. Technically, in the following format:
+---------
+Manner 1: String result=Translate.execute(String text, SourceLanguage, TargetLanguage)
+Manner 2: String[] result=Translate.execute(String[] text, SourceLanguage, TargetLanguage)
+---------
+
+By default, the toolkit will call Manner 1 unless the user specifies using string array tranlsation (Manner 2). 
+
+Also, the toolkit supports two different inputs of source documents which will be translated. (1) The uses can put all the documents to be translated in a directory, and the toolkit will read all the documents from that directory for translation. (2) Sometimes the documents to be translated are from different directories, in this case the user can provide a file which lists all the documents to be translated with full path, and the toolkit will read the documents using this file, and proceed the translation. Finally, apart from outputting the translated documents, a file which lists the full path of each translated document will be generated as well. 
+
+3. Toolkit requirement:
+(1) System: platform independent (java program) 
+(2) Internet: Given that both Google and Bing translation API need to send request to remote servers for translation, thus the system should ensure that Internet is stably connected. 
+(3) JRE: 1.6.0 (not specified, lower versions should be OK)
+(4) Line length limits: The length of each line in a document should not exceed 5000 characters for Google translation API, and 5000 Bytes for Microsoft translation API. So in a document, if there is line with length over this limit, the toolkit will split the lines into chunks by sentence splitting to make sure the length of each chunk does not exceed the length limit. The reason for doing this is as belows.  
+
+Google translation API and Bing translation API have different length limit for each translation request. For google translation API, the text String length limit (in both calling manners) of each call is 5000 character for all the supported languages. 
+For Bing translation API, the length limit is 10,000 Bytes for most of the Western languages (If in that language encoding, 1 character takes 1 byte). However, for Greek, Chinese and Russian (and maybe some other languages), the length limit is around 5000 Bytes. This is because in Greek and Russian, a character takes 2 Bytes; while in Chinese a character takes 3 Bytes. This conversion is the same under the UTF-8 encoding.
+
+Therefore, in our toolkit we set the length limit of a translation request (both Manner 1 and Manner 2) at 5000 characters for Google translation API, and 5000 bytes for Microsoft translation API. 
+
+Also, as we prepare the text by line, we can send each line as text string for translation. However, for a large collection of documents, this will require too many calls and can quickly reach the translation access limit (as both Google and Microsoft API will report errors or Exceptions if there are too many translation requests within relatively short time from the same IP address). Therefore, in order to reduce the number of translation request, it is better to send longer string for translation. For example, longer string (e.g., around 5000 characters) than line length. This is because, as long as input string length does not exceed the length limit, the translation access limit of both Google and Microsoft APIs is based on the number of translation requests, but not the length of overall input string length.  
+
+For a document, we can thus merge several lines into a longer string (but not more than the length limit) and then use Manner 1 for translation. Or, we can store lines as a string array (also the overall length of the array should not exceed the length limit) and then use Manner 2. 
+
+(5) For Translation toolkit, if the translation is processed by Manner 2 (the input document is converted into string array by lines), sometimes the Google translation API might report the exception "org.json.JSONException: JSONObject["responseData"] is not a JSONArray" or Bing tranlsation API might report exception "java.Lang.String cannot be cast to org.json.simple.JSONArray". This is due to that the input document contains many lines with very short text string in it. For example, a line only contains one or two words. In other word, in the string array to be translated by Manner 2, if many cells of this string array have very short string length, translation error might occur even the overall length of the string array does not exceed the length limit. However, this error is within the external Google and Bing Translation API (ideally the bugs should be fixed in the API implementation), but not our program. Therefore, if the input documents contain many lines with very short text in it, it is better to proceed the translation by Manner 1. 
+
+***Overall, to reduce the potential risk of encountering translation errors, the users are recommended to use Manner 1 (default setting)*** 
+
+4. Quick Start:
+
+(1) Usage
+java -jar Translation.jar -SL sourcelanguage -TL targetlanguage [-Array] -SP sourcepath|-SF sourcefile -TP targetpath
+
+(2) Parameter description
+-SL SourceLanguage: the source language you want to translate from;
+-TL TargetLanguage: the tareget langauge you want to translate to;
+-Array: optional, translating a document by string array;
+-SP sourepath: The path to the text collection to be translated (full path, must exist!);
+-SF sourcefile: The path to the file which lists the document to be translated (full path, must exist!)
+-TP targetpath: The path to the directory that will store the translated documents (full path, must exist!);
+
+Note that the parameters are separated by space, and both the source language and the tareget langauge parameter should be uppercased. The supported language list is as below:
+
+Google translation API:
+AUTO_DETECT AFRIKAANS ALBANIAN AMHARIC ARABIC ARMENIAN AZERBAIJANI BASQUE BELARUSIAN BENGALI BIHARI BULGARIAN BURMESE CATALAN CHEROKEE CHINESE CHINESE_SIMPLIFIED CHINESE_TRADITIONAL CROATIAN CZECH DANISH DHIVEHI DUTCH ENGLISH ESPERANTO ESTONIAN FILIPINO FINNISH FRENCH GALICIAN GEORGIAN GERMAN GREEK GUARANI GUJARATI HEBREW HINDI HUNGARIAN ICELANDIC INDONESIAN INUKTITUT IRISH ITALIAN JAPANESE KANNADA KAZAKH KHMER KOREAN KURDISH KYRGYZ LAOTHIAN LATVIAN LITHUANIAN MACEDONIAN MALAY MALAYALAM MALTESE MARATHI MONGOLIAN NEPALI NORWEGIAN ORIYA PASHTO PERSIAN POLISH PORTUGUESE PUNJABI ROMANIAN RUSSIAN SANSKRIT SERBIAN SINDHI SINHALESE SLOVAK SLOVENIAN SPANISH SWAHILI SWEDISH TAJIK TAMIL TAGALOG TELUGU THAI TIBETAN TURKISH UKRANIAN URDU UZBEK UIGHUR VIETNAMESE WELSH YIDDISH
+
+Microsoft translation API:
+AUTO_DETECT ARABIC BULGARIAN CHINESE_SIMPLIFIED CHINESE_TRADITIONAL CZECH DANISH DUTCH ENGLISH ESTONIAN FINNISH FRENCH GERMAN GREEK HATIAN_CREOLE HEBREW HUNGARIAN INDONESIAN ITALIAN JAPANESE KOREAN LATVIAN LITHUANIAN NORWEGIAN POLISH PORTUGUESE ROMANIAN RUSSIAN SLOVAK SLOVENIAN SPANISH SWEDISH THAI TURKISH UKRANIAN VIETNAMESE
+
+
+5. A simple example: 
+Linux command: 
+(1)java -jar GoogleTranslate.jar -SL LATVIAN -TL ENGLISH -SP /home/fzsu/metric/sample/LV -TP /home/fzsu/metric/sample/LV-translation 
+(2)java -jar GoogleTranslate.jar -SL LATVIAN -TL ENGLISH -SF /home/fzsu/metric/sample/example.txt -TP /home/fzsu/metric/sample/LV-translation 
+
+Windows command: 
+(3)java -jar GoogleTranslate.jar -SL LATVIAN -TL ENGLISH -SP C:\metric\sample\LV -TP C:\metric\sample\LV-translation
+(4)java -jar GoogleTranslate.jar -SL LATVIAN -TL ENGLISH -SF C:\metric\sample\example-windows.txt -TP C:\metric\sample\LV-translation
+
+Examples (1) and (3) will translate the Latvian documents in the source path "/home/fzsu/metric/sample/LV" (Linux platform) or "C:\metric\sample\LV" (Windows platform) into English, and then save them in the target path "/home/fzsu/metric/sample/LV-translation" or (C:\metric\sample\LV-translation). Examples (2) and (4) are similar to Examples (1) and (3), except that it will not translate documents from a directory, but translate the Latvian documents listed in "/home/fzsu/metric/sample/example.txt" and "C:\metric\sample\example-windows.txt" into English. In addition, in Examples (2) and (4), a file called "translation-output.txt" will be generated in the same parent directory as "example.txt" and "example-windows.txt".  
